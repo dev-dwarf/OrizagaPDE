@@ -6,7 +6,7 @@ clear all;
 addpath('./mole_MATLAB/')
 
 #### Settings #####
-explicit = 0;
+explicit = 1;
 plots = true;
 plot_frequency = 10;
 skip_standard = false;
@@ -38,7 +38,7 @@ x_display = [x; b];
 
 # Time discretization
 t = t0;
-dt = (dx^2) / (3 * alpha); # Von Neumann stability condition.
+dt = (dx^2) / (4 * alpha); # Use same timestep as mimetic code.
 
 timesteps = 0;
 
@@ -70,29 +70,29 @@ while (t < tf)
     # update U
     if (explicit)
       unew = FD * u;
-      u = unew;
     else
       unew = FD \ u;
-      u = unew;
     endif
 
     # timestep
     timesteps = timesteps+1;
     t = timesteps*dt;
 
-    # Make a plot every few timesteps.
+    # Make a plot every few timesteps and on the last timestep.
     if (plots && (mod(timesteps-1, plot_frequency) == 0 || t >= tf))
       u_display = [u; u(1)];
       figure(figures_so_far);
       figures_so_far = figures_so_far + 1;
       plot(x_display, u_display, 'o-');
-      str = sprintf('Implicit Standard \t t = %.2f', t);
+      str = sprintf('Standard \t t = %.2f', t);
       title(str)
       xlabel('x')
       ylabel('U')
       xlim([a b]);
       ylim([0 1]);
     endif
+
+    u = unew;
 end
 endif
 ##################################
@@ -109,7 +109,7 @@ x_display = [x; b];
 # Time discretization
 t = t0;
 timesteps = 0;
-dt = dx^2/(3*alpha); # Von Neumann Stability Criterion
+dt = dx^2/(4*alpha); # Von Neumann Stability Criterion
 
 # Initial Condition
 u0 = sin(3.14 * x);
@@ -151,28 +151,28 @@ while (t < tf)
     # update U
     if (explicit)
       unew = MFD * u;
-      u = unew;
     else
       unew = MFD \ u;
-      u = unew;
     endif
 
     # timestep
     timesteps = timesteps+1;
     t = timesteps*dt;
 
-    # Make a plot every few timesteps.
+    # Make a plot every few timesteps and on the last timestep.
     if (plots && (mod(timesteps-1, plot_frequency) == 0 || t >= tf))
       figure(figures_so_far);
       figures_so_far = figures_so_far + 1;
       plot(x, u, 'o-');
-      str = sprintf('Implicit Mimetic \t t = %.2f', t);
+      str = sprintf('Mimetic \t t = %.2f', t);
       title(str)
       xlabel('x')
       ylabel('U')
       xlim([a b]);
       ylim([0 1]);
     endif
+
+    u = unew;
 end
 
 ##################################
