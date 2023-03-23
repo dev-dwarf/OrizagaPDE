@@ -67,7 +67,7 @@ endif
 
 figures_so_far = 1;
 
-if (!skip_standard)
+if (skip_standard == 0)
 # Integrate
 while (t < tf)
     # update U
