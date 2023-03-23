@@ -44,7 +44,7 @@ timesteps = 0;
 % Initial Condition
 if (allen_cahn)
   u0=1.2*(rand(size(x))-1*rand(size(x)));
-  %u0 = sin(5 * x);
+  u0 = sin(5 * x);
 else
   u0 = sin(2 * x);
 end
@@ -121,7 +121,7 @@ timesteps = 0;
 % Initial Condition
 if (allen_cahn)
   u0=1.2*(rand(size(x))-1*rand(size(x)));
-  %u0 = sin(5 * x);
+  u0 = sin(5 * x);
 else
   u0 = sin(2 * x);
 end
