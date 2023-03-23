@@ -8,9 +8,9 @@ clear all;
 %Settings %%%%
 N = 50; % number of grid points
 
-explicit = 1;
+explicit = false;
 plots = true;
-plot_frequency = 20 * N;
+plot_frequency = 10 * N;
 skip_standard = false;
 allen_cahn = true;
 
@@ -28,7 +28,7 @@ dx = (b-a)/N;
 % Time Domain
 t0 = 0;
 tf = 0.5;
-dt = dx^2/(4*alpha); % Von Neumann Stability Criterion
+dt = 0.1*(dx^2)/(4*alpha); % Von Neumann Stability Criterion
 
 % Implicit "Standard" Finite Differences Approach
 
@@ -39,14 +39,14 @@ x_display = [x; b];
 
 % Time discretization
 t = t0;
-
 timesteps = 0;
 
 % Initial Condition
 if (allen_cahn)
   u0=1.2*(rand(size(x))-1*rand(size(x)));
+  %u0 = sin(5 * x);
 else
-  u0 = sin(3.14 * x);
+  u0 = sin(2 * x);
 end
 
 u_display = [u0; u0(1)];
@@ -93,13 +93,14 @@ while (t < tf)
       u_display = [u; u(1)];
       figure(figures_so_far);
       figures_so_far = figures_so_far + 1;
+
       plot(x_display, u_display, 'o-');
       str = sprintf('Standard \t t = %.2f', t);
       title(str)
       xlabel('x')
       ylabel('U')
       xlim([a b]);
-      ylim([-1 1]);
+      ylim([-2 2]);
     end
 
     u = unew;
@@ -120,8 +121,9 @@ timesteps = 0;
 % Initial Condition
 if (allen_cahn)
   u0=1.2*(rand(size(x))-1*rand(size(x)));
+  %u0 = sin(5 * x);
 else
-  u0 = sin(3.14 * x);
+  u0 = sin(2 * x);
 end
 u_display = [u0; u0(1)];
 u = u0;
@@ -141,11 +143,6 @@ D(1,end-1) = -1/(2*dx);
 D(end,2) = 1/(2*dx);
 D(end,end-1) = -1/(2*dx);
 
-% Periodic BC imposed on the gradient operator
-temp = G(end, :);
-G(end,:) = G(end,:) - G(1,:);
-G(1,:) = G(1,:) - temp;
-
 % Apply the rule that U(1) == U(end), and drop last row/column.
 L = D*G;
 L(:, 1) = L(:, 1) + L(:, end);
@@ -158,7 +155,6 @@ else
 end
 
 % Integrate
-coeff=(1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
 while (t < tf)
     % update U
     if (explicit)
@@ -180,13 +176,14 @@ while (t < tf)
       u_display = [u; u(1)];
       figure(figures_so_far);
       figures_so_far = figures_so_far + 1;
+
       plot(x_display, u_display, 'o-');
       str = sprintf('Mimetic \t t = %.2f', t);
       title(str)
       xlabel('x')
       ylabel('U')
       xlim([a b]);
-      ylim([-1 1]);
+      ylim([-2 2]);
     end
 
     u = unew;
