@@ -3,14 +3,13 @@ clf;
 clc;
 clear all;
 
-%addpath('./mole_MATLAB/')
+addpath([mfilename('fullpath'), '/../mole_MATLAB/'])
 
 %Settings %%%%
-N = 50; % number of grid points
+N = 30; % number of grid points
 
-explicit = false;
+explicit = true;
 plots = true;
-plot_frequency = 10 * N;
 skip_standard = false;
 allen_cahn = true;
 
@@ -22,44 +21,53 @@ alpha = 1.0; % thermal diffusivity.
 
 % X Domain
 a = 0;
-b = 2*pi;
+b = 6;
 dx = (b-a)/N;
+dx2 = dx/2;
+
+% X discretization
+x = [a (a+dx2):dx:(b-dx2)]'; % solution domain is u(0) to u(N) {u(x(0)) = u(x(N+1))}
+x_display = [x; b];
+
+% Initial Condition
+if (allen_cahn)
+  u0=1.2*(rand(size(x))-1*rand(size(x)));
+  %u0 = 0.5*(1+sin(5*3.14/(b-a) * x));
+else
+  u0 = 0.5*(1+sin(2*3.14/(b-a) * x));
+end
+u_display = [u0; u0(1)];
 
 % Time Domain
 t0 = 0;
 tf = 0.5;
-dt = 0.1*(dx^2)/(4*alpha); % Von Neumann Stability Criterion
+dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
+
+plot_frequency = (tf/dt)/N;
 
 % Implicit "Standard" Finite Differences Approach
-
-% X discretization
-dx = (b-a)/N;
-x = [0:dx:(b-dx)]'; % solution domain is u(0) to u(N) {u(x(0)) = u(x(N+1))}
-x_display = [x; b];
 
 % Time discretization
 t = t0;
 timesteps = 0;
 
 % Initial Condition
-if (allen_cahn)
-  u0=1.2*(rand(size(x))-1*rand(size(x)));
-  u0 = sin(5 * x);
-else
-  u0 = sin(2 * x);
-end
-
-u_display = [u0; u0(1)];
 u = u0;
 unew = u0;
 
 % Finite Difference Operator Matrix
 v = alpha*dt/dx^2;
-a0 = v*ones(N, 1);
-a1 = -2*v*ones(N, 1);
-A = spdiags([a0 a1 a0], [-1 0 1], N, N);
-A(1, N) = v;
-A(N, 1) = v;
+a0 = v*ones(N+1, 1);
+a1 = -2*v*ones(N+1, 1);
+A = spdiags([a0 a1 a0], [-1 0 1], N+1, N+1);
+
+% Use Saulo's non-uniform spacing scheme at boundaries
+% X = a
+A(1, N+1) = v;       A(1, 1)     = -2*v; A(1, 2)   = v;
+% X = a + dx/2
+A(2, 1)   = (8/3)*v; A(2, 2)     = -4*v; A(2, 3)   = (4/3)*v;
+% X = b - dx/2
+A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, 1) = (8/3)*v;
 
 if (explicit)
   FD = speye(size(A)) + A;
@@ -107,6 +115,8 @@ while (t < tf)
 end
 end
 
+u_standard = u;
+
 
 % Implicit Mimetic Finite Differences Approach
 
@@ -119,13 +129,6 @@ t = t0;
 timesteps = 0;
 
 % Initial Condition
-if (allen_cahn)
-  u0=1.2*(rand(size(x))-1*rand(size(x)));
-  u0 = sin(5 * x);
-else
-  u0 = sin(2 * x);
-end
-u_display = [u0; u0(1)];
 u = u0;
 unew = u0;
 
@@ -189,4 +192,7 @@ while (t < tf)
     u = unew;
 end
 
+u_mimetic = u;
+
+percent_diff = 100 * abs(u_standard - u_mimetic) ./ u_standard;
 
