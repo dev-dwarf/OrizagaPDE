@@ -6,10 +6,13 @@ clear all;
 addpath('./mole_MATLAB/')
 
 #### Settings #####
+N = 50; # number of grid points
+
 explicit = 1;
 plots = true;
-plot_frequency = 10;
+plot_frequency = 5 * N;
 skip_standard = false;
+
 
 ##################################
 
@@ -22,6 +25,7 @@ alpha = 0.5; # thermal diffusivity.
 a = 0;
 b = 1;
 
+
 # Time Domain
 t0 = 0;
 tf = 0.5;
@@ -31,7 +35,6 @@ tf = 0.5;
 ## Implicit "Standard" Finite Differences Approach
 
 # X discretization
-N = 8; # number of grid points
 dx = (b-a)/N;
 x = [0:dx:(b-dx)]'; # solution domain is u(0) to u(N) {u(x(0)) = u(x(N+1))}
 x_display = [x; b];
