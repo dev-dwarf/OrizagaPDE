@@ -8,7 +8,7 @@ addpath([mfilename('fullpath'), '/../mole_MATLAB/'])
 %Settings %%%%
 N = 30; % number of grid points
 
-explicit = true;
+explicit = false;
 plots = true;
 skip_standard = false;
 allen_cahn = true;
@@ -40,10 +40,11 @@ u_display = [u0; u0(1)];
 
 % Time Domain
 t0 = 0;
-tf = 0.5;
+tf = 1.0;
 dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
 
-plot_frequency = (tf/dt)/N;
+%plot_frequency = (tf/dt)/N;
+plot_frequency = 1; % for watching time evolution
 
 % Implicit "Standard" Finite Differences Approach
 
@@ -99,7 +100,8 @@ while (t < tf)
     % Make a plot every few timesteps and on the last timestep.
     if (plots && (mod(timesteps-1, plot_frequency) == 0 || t >= tf))
       u_display = [u; u(1)];
-      figure(figures_so_far);
+      % figure(figures_so_far);
+      figure(1);
       figures_so_far = figures_so_far + 1;
 
       plot(x_display, u_display, 'o-');
@@ -177,7 +179,8 @@ while (t < tf)
     % Make a plot every few timesteps and on the last timestep.
     if (plots && (mod(timesteps-1, plot_frequency) == 0 || t >= tf))
       u_display = [u; u(1)];
-      figure(figures_so_far);
+      %figure(figures_so_far);
+      figure(2);
       figures_so_far = figures_so_far + 1;
 
       plot(x_display, u_display, 'o-');
