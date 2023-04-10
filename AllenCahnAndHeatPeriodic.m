@@ -144,7 +144,7 @@ x_display = [x; b];
 
 %% Time discretization
 t = t0;
-timesteps = 0;
+timesteps = 1;
 
 %% Initial Condition
 u = u0;

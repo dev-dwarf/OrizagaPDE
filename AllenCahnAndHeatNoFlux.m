@@ -20,7 +20,7 @@ coeff=(1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
 alpha = 1.0; % thermal diffusivity.
 
 %% X Domain
-a = 0;
+a = -2*pi;
 b = 2*pi;
 dx = (b-a)/N;
 dx2 = dx/2;
@@ -29,7 +29,7 @@ dx2 = dx/2;
 x = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
 
 % Initial Condition
-u0=1.2*(rand(size(x))-1*rand(size(x)));
+u0= 1.2*(rand(size(x))-1*rand(size(x)));
 %% u0 = 0.5*(1+sin(2*2*3.14/(b-a) * x));
 
 % Time Domain
@@ -51,7 +51,7 @@ timesteps = 1;
 % Initial Condition
 u = u0;
 unew = u0;
-standard(1,:) = u;
+standard(1,:) = u0;
 
 %% Finite Difference Operator Matrix
 %% N
@@ -84,7 +84,6 @@ else
   FD = speye(size(A)) - A;
 end
 
-
 if (plots)
   figure(1);
   plot(x, u, 'o-');
@@ -111,12 +110,12 @@ while (t <= tf)
       unew = unew - coeff*dt*(u.^3-u);
     end
 
-    u = unew;
-
     %% timestep
     timesteps = timesteps+1;
     t = timesteps*dt;
 
+    u = unew;
+	
     %% Make a plot every few timesteps and on the last timestep.
     if (plots && (mod(timesteps-1, plot_frequency) == 1 || t >= tf))
       % figure(figures_so_far); figures_so_far = figures_so_far + 1;
@@ -141,17 +140,19 @@ mimetic = zeros(ceil(tf/dt), length(x));
 
 %% Time discretization
 t = t0;
-timesteps = 0;
+timesteps = 1;
 
 %% Initial Condition
 u = u0;
 unew = u0;
-mimetic(1,:) = u;
+mimetic(1,:) = u0;
 
 %% Mimetic Operator Matrix
 order = 2;
 
-L = lap(order, N, dx) + robinBC(order, N, dx, 0, 1);
+L = lap(order, N, dx);
+R = robinBC(order, N, dx, 0, 1);
+L = L - R;
 
 if (explicit)
   MFD = speye(size(L)) + alpha*dt*L;
@@ -197,7 +198,18 @@ end
 
 u_mimetic = u;
 
-percent_diff = 100 * abs(u_standard - u_mimetic) ./ u_standard;
+abs_diff = abs(u_standard - u_mimetic);
+
+if (plots)
+  figure(4);
+  plot(x, abs_diff, 'o-');
+  str = sprintf('Abs. Diff');
+  title(str)
+  xlabel('x')
+  ylabel('dff')
+  xlim([a b]);
+  ylim([-2 2]);
+end
 
 %% 3D plots
 if (plots)
@@ -205,19 +217,19 @@ if (plots)
   T = 0:dt:tf;
 
   %figure(figures_so_far); figures_so_far + 1;
-  figure(4);
+  figure(5);
   mesh(X,T,standard);
   title("standard");
   xlabel('x'); ylabel('t'); zlabel('u');
 
   %figure(figures_so_far); figures_so_far + 1;
-  figure(5);
+  figure(6);
   mesh(X,T,mimetic);
   title("mimetic");
   xlabel('x'); ylabel('t'); zlabel('u');
 
   %figure(figures_so_far); figures_so_far + 1;
-  figure(6);
+  figure(7);
   mesh(X,T,abs(mimetic-standard));
   title("abs. difference");
   xlabel('x'); ylabel('t'); zlabel('diff');
