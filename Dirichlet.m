@@ -36,7 +36,8 @@ function [c,f,s] = pdefun(x, t, u, DuDx)
   coeff= (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
   c = 1;
   f = DuDx;
-  s = -coeff*(u.^3-u);
+  %% s = -coeff*(u.^3-u);
+  s = 0;
 end
 
 function u0 = icfun(x)
