@@ -10,7 +10,7 @@ addpath('./mole_MATLAB/');
 N = 50; % number of grid points
 
 explicit = true;
-allen_cahn = true;
+allen_cahn = false;
 
 %% Shared problem parameters
 
@@ -28,7 +28,7 @@ dx2 = dx/2;
 X = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
 
 % Initial Condition
-u0= 1.2*(rand(size(X))-1*rand(size(X)));
+u0= 0.5 + 1.2*(rand(size(X))-1*rand(size(X)));
 %%u0 = 0.5*(1+sin(2*2*3.14/(b-a) * X));
 
 % Time Domain
@@ -116,15 +116,6 @@ end
 finiteDifference(end,:) = u;
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
-plot(X, u, 'o-');
-str = sprintf('FiniteDifference \t t = %.2f', t);
-title(str)
-xlabel('x')
-ylabel('U')
-xlim([a b]);
-ylim([-2 2]);
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,finiteDifference);
 title("FiniteDifference");
 xlabel('x'); ylabel('t'); zlabel('u');
@@ -178,15 +169,6 @@ end
 mimetic(end,:) = u;
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
-plot(X, u, 'o-');
-str = sprintf('Mimetic \t t = %.2f', t);
-title(str)
-xlabel('x')
-ylabel('U')
-xlim([a b]);
-ylim([-2 2]);
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,mimetic);
 title("Mimetic");
 xlabel('x'); ylabel('t'); zlabel('u');
@@ -195,15 +177,6 @@ u_mimetic = u;
 
 %% Matlab Solver
 matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, allen_cahn, coeff), @(x) u0(find(X==x)), @bcfun, X, T);
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-plot(X, matlab(end,:), 'o-');
-str = sprintf('Matlab \t t = %.2f', tf);
-title(str)
-xlabel('x')
-ylabel('U')
-xlim([a b]);
-ylim([-2 2]);
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,matlab);
@@ -224,8 +197,9 @@ xlabel('x'); ylabel('t'); zlabel('u');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 hold on;
+plot(X,u0, "c:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
-plot(X, finiteDifference(end,:), "b:", 'DisplayName', 'FiniteDifference');
+plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
 title("Final State")
 xlabel('x')
