@@ -4,13 +4,13 @@ clc;
 clear all;
 figures_so_far = 1;
 
-addpath('./mole_MATLAB/');
+%addpath('./mole_MATLAB/');
 
 %% Settings %%%%
 N = 50; % number of grid points
 
 explicit = true;
-allen_cahn = false;
+allen_cahn = true;
 
 %% Shared problem parameters
 
@@ -28,8 +28,8 @@ dx2 = dx/2;
 X = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
 
 % Initial Condition
-u0= 0.5 + 1.2*(rand(size(X))-1*rand(size(X)));
-%%u0 = 0.5*(1+sin(2*2*3.14/(b-a) * X));
+u0= 1.2*(rand(size(X))-1*rand(size(X)));
+u0 = 0.15*(1*0+sin(3*2*3.14/(b-a) * X));
 
 % Time Domain
 t0 = 0;
