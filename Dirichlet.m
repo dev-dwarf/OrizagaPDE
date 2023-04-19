@@ -63,6 +63,13 @@ a0 = v*ones(N, 1);
 a1 = -2*v*ones(N, 1);
 A = spdiags([a0 a1 a0], [-1 0 1], N, N);
 
+%% Use Saulo's non-uniform spacing scheme at boundaries
+%% Now we have removed the two endpoints, however we must still change the
+%% coefficients near the boundaries at x=a+dx/2 (corresponds to index 1)
+%% and x=b-dx/2 (corresponds to index N).
+A(1, 1)     = -4*v; A(1, 2)   = (4/3)*v;
+A(N, N-1) = (4/3)*v; A(N, N) = -4*v; 
+
 if (explicit)
   FD = speye(size(A)) + A;
 else
