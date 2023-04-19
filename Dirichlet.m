@@ -113,20 +113,31 @@ t = t0;
 timesteps = 1;
 
 %% Initial Condition
-u = u0(2:end-1);
-unew = u0(2:end-1);
+%u = u0(2:end-1);
+%unew = u0(2:end-1);
+u = u0;
+unew = u0;
 mimetic(1,:) = u0;
 
 %% Mimetic Operator Matrix
 order = 2;
 
 L = lap(order, N, dx);
-L = L(2:end-1, 2:end-1);
+
+%% Enforce Dirichlet (Zero) B.C:
+%% Choice 1: Drop the first/last elements since they are 0.
+%% Note: requires uncommenting some nearby lines of code since
+%%  size of matrix is different.
+%L = L(2:end-1, 2:end-1);
+
+%% Choice 2: Use robinBC operator to enforce the B.C, where B.Cs
+%%  are 1*u + 0*du' = 0.
+R = robinBC(order, N, dx, 1, 0);
 
 if (explicit)
-  MFD = speye(size(L)) + alpha*dt*(L);
+  MFD = speye(size(L)) + alpha*dt*(L-R);
 else
-  MFD = speye(size(L)) - alpha*dt*(L);
+  MFD = speye(size(L)) - alpha*dt*(L-R);
 end
 
 %% Integrate
@@ -147,9 +158,11 @@ while (t < tf)
     t = timesteps*dt;
 
     u = unew;
-    mimetic(timesteps,:) = [0; u; 0];
+    %mimetic(timesteps,:) = [0; u; 0];
+    mimetic(timesteps,:) = u;
 end
-mimetic(end,:) = [0; u; 0];
+%mimetic(end,:) = [0; u; 0];
+mimetic(end,:) = u;
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,mimetic);
