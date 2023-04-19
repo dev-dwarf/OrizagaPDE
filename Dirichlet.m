@@ -131,13 +131,15 @@ L = lap(order, N, dx);
 %L = L(2:end-1, 2:end-1);
 
 %% Choice 2: Use robinBC operator to enforce the B.C, where B.Cs
-%%  are 1*u + 0*du' = 0.
-R = robinBC(order, N, dx, 1, 0);
+%%  are 1*u + 0*du' = g.
+%% R = robinBC(order, N, dx, 1, 0);
+
+%% Choice 3: Do nothing, which works because g in the above is 0.
 
 if (explicit)
-  MFD = speye(size(L)) + alpha*dt*(L-R);
+  MFD = speye(size(L)) + alpha*dt*(L);
 else
-  MFD = speye(size(L)) - alpha*dt*(L-R);
+  MFD = speye(size(L)) - alpha*dt*(L);
 end
 
 %% Integrate
