@@ -7,7 +7,7 @@ figures_so_far = 1;
 %addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 8; % number of grid points
+N = 50; % number of grid points
 
 explicit = true;
 allen_cahn = false;
@@ -60,22 +60,19 @@ a0 = v*ones(N+2, 1);
 a1 = -2*v*ones(N+2, 1);
 A = spdiags([a0 a1 a0], [-1 0 1], N+2, N+2);
 
-%% Use Saulo's non-uniform spacing scheme at boundaries
-%% MODIFICATION FOR NO-FLUX B.Cs:
-%% For periodic we had A(1, 0) = A(1, N+1)
-%% Now we will have A(1, 0) = A(1, 2)
-%% Hence we add the coefficient from A(1, N+1) to the entry for A(1,2)
-%% X = a
-A(1, 1) = -2*v; 
-A(1, 2) = 2*v;
-
-%% X = a + dx/2 (Same as for periodic case)
+%% Use Saulo's non-uniform spacing scheme near edges:
+%% X = a + dx/2 
 A(2, 1)   = (8/3)*v; A(2, 2)     = -4*v; A(2, 3)   = (4/3)*v;
-
-%% X = b - dx/2 (N+2 no longer "wraps-around" to 1)
+%% X = b - dx/2 
 A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
 
-%% X = b (new row, not needed for periodic because U(b) equaled U(a) before)
+%% Enforce No-Flux B.Cs:
+%% Really we are using the same centered difference laplacian over the boundary,
+%% however we treat the A(1,0) point as equal to A(1,2), and likewise
+%% for the other edge.
+%% X = a
+A(1, 1) = -2*v; A(1, 2) = 2*v;
+%% X = b
 A(N+2, N+1) = 2*v; A(N+2, N+2) = -2*v;
 
 if (explicit)

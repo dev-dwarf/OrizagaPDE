@@ -7,7 +7,7 @@ figures_so_far = 1;
 addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 50; % number of grid points
+N = 5; % number of grid points
 
 explicit = false;
 allen_cahn = false;
@@ -60,17 +60,24 @@ finiteDifference(1,:) = u_display;
 
 %% Finite Difference Operator Matrix
 v = alpha*dt/dx^2;
-a0 = v*ones(N+1, 1);
-a1 = -2*v*ones(N+1, 1);
-A = spdiags([a0 a1 a0], [-1 0 1], N+1, N+1);
+a0 = v*ones(N+2, 1);
+a1 = -2*v*ones(N+2, 1);
+A = spdiags([a0 a1 a0], [-1 0 1], N+2, N+2);
 
 %% Use Saulo's non-uniform spacing scheme at boundaries
-%% X = a
-A(1, N+1) = v;       A(1, 1)     = -2*v; A(1, 2)   = v;
 %% X = a + dx/2
 A(2, 1)   = (8/3)*v; A(2, 2)     = -4*v; A(2, 3)   = (4/3)*v;
 %% X = b - dx/2
-A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, 1) = (8/3)*v;
+A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
+
+%% Enforce Periodic B.Cs:
+%% Use centered difference laplacian.
+%% X = a
+A(1, N+1) = v;       A(1, 1)     = -2*v; A(1, 2)   = v;
+%% Apply the rule that U(a) == U(b), and drop last row/column.
+A(:, 1) = A(:, 1) + A(:, end);
+A = A(1:end-1,1:end-1);
+
 
 if (explicit)
   FD = speye(size(A)) + A;
@@ -139,7 +146,7 @@ D(end,end-1) = -1/(2*dx);
 %% Construct Mimetic Laplacian
 L = D*G;
 
-%% Apply the rule that U(1) == U(end), and drop last row/column.
+%% Apply the rule that U(a) == U(b), and drop last row/column.
 L(:, 1) = L(:, 1) + L(:, end);
 L = L(1:end-1,1:end-1);
 

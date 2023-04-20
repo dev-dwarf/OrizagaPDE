@@ -52,23 +52,27 @@ t = t0;
 timesteps = 1;
 
 % Initial Condition
-u = u0(2:end-1);
-unew = u0(2:end-1);
+u = u0;
+unew = u0;
 finiteDifference(1,:) = u0;
 
 %% Finite Difference Operator Matrix
-%% N
 v = alpha*dt/dx^2;
-a0 = v*ones(N, 1);
-a1 = -2*v*ones(N, 1);
-A = spdiags([a0 a1 a0], [-1 0 1], N, N);
+a0 = v*ones(N+2, 1);
+a1 = -2*v*ones(N+2, 1);
+A = spdiags([a0 a1 a0], [-1 0 1], N+2, N+2);
 
 %% Use Saulo's non-uniform spacing scheme at boundaries
-%% Now we have removed the two endpoints, however we must still change the
-%% coefficients near the boundaries at x=a+dx/2 (corresponds to index 1)
-%% and x=b-dx/2 (corresponds to index N).
-A(1, 1)     = -4*v; A(1, 2)   = (4/3)*v;
-A(N, N-1) = (4/3)*v; A(N, N) = -4*v; 
+%% X = a + dx/2
+A(2, 1)   = (8/3)*v; A(2, 2)     = -4*v; A(2, 3)   = (4/3)*v;
+%% X = b - dx/2
+A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
+
+%% Enforce Dirichlet (Zero) B.Cs:
+%% Remove the first and last rows, applying the rule U(a) == U(b) == 0.
+A = A(2:end-1, 2:end-1);
+u = u(2:end-1);
+unew = u;
 
 if (explicit)
   FD = speye(size(A)) + A;
@@ -108,8 +112,6 @@ t = t0;
 timesteps = 1;
 
 %% Initial Condition
-%u = u0(2:end-1);
-%unew = u0(2:end-1);
 u = u0;
 unew = u0;
 mimetic(1,:) = u0;
@@ -121,9 +123,9 @@ L = lap(order, N, dx);
 
 %% Enforce Dirichlet (Zero) B.C:
 %% Choice 1: Drop the first/last elements since they are 0.
-%% Note: requires uncommenting some nearby lines of code since
-%%  size of matrix is different.
-%L = L(2:end-1, 2:end-1);
+L = L(2:end-1, 2:end-1);
+u = u(2:end-1);
+unew = u;
 
 %% Choice 2: Use robinBC operator to enforce the B.C, where B.Cs
 %%  are 1*u + 0*du' = g.
@@ -155,11 +157,9 @@ while (t < tf)
     t = timesteps*dt;
 
     u = unew;
-    %mimetic(timesteps,:) = [0; u; 0];
-    mimetic(timesteps,:) = u;
+    mimetic(timesteps,:) = [0; u; 0];
 end
-%mimetic(end,:) = [0; u; 0];
-mimetic(end,:) = u;
+mimetic(end,:) = [0; u; 0];
 
 u_mimetic = u;
 
