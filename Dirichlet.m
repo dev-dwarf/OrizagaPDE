@@ -10,7 +10,7 @@ figures_so_far = 1;
 N = 50; % number of grid points
 
 explicit = true;
-allen_cahn = false;
+allen_cahn = true;
 
 %% Shared problem parameters
 
@@ -98,11 +98,6 @@ while (t < tf)
 end
 finiteDifference(end,:) = [0; u; 0];
 
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,finiteDifference);
-title("FiniteDifference");
-xlabel('x'); ylabel('t'); zlabel('u');
-
 u_finiteDifference = u;
 
 %% Implicit Mimetic Finite Differences Approach
@@ -166,42 +161,50 @@ end
 %mimetic(end,:) = [0; u; 0];
 mimetic(end,:) = u;
 
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,mimetic);
-title("Mimetic");
-xlabel('x'); ylabel('t'); zlabel('u');
-
 u_mimetic = u;
 
 %% Matlab Solver
 matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, allen_cahn, coeff), @(x) u0(find(X==x)), @bcfun, X, T);
+
+%% Plots
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,finiteDifference);
+title("FiniteDifference");
+xlabel('x'); ylabel('t'); zlabel('u');
+
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,mimetic);
+title("Mimetic");
+xlabel('x'); ylabel('t'); zlabel('u');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,matlab);
 title("Matlab");
 xlabel('x'); ylabel('t'); zlabel('u');
 
-
-%% 3D plots
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,abs(mimetic-finiteDifference));
-title("Mimetic vs FiniteDifference");
-xlabel('x'); ylabel('t'); zlabel('u');
+title("Mimetic vs Finite Difference");
+xlabel('x'); ylabel('t'); zlabel('diff.');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,abs(mimetic-matlab));
 title("Mimetic vs Matlab");
-xlabel('x'); ylabel('t'); zlabel('u');
+xlabel('x'); ylabel('t'); zlabel('diff.');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
-hold on;
+clf; hold on;
 plot(X,u0, "c:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
-title("Final State")
+if (allen_cahn)
+  title("Final State (Allen-Cahn)");
+else
+  title("Final State (Heat)");
+end
 xlabel('x')
-ylabel('U')
+ylabel('u')
 xlim([a b]);
 ylim([-2 2]);
 legend();

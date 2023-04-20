@@ -7,10 +7,10 @@ figures_so_far = 1;
 %addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 50; % number of grid points
+N = 8; % number of grid points
 
 explicit = true;
-allen_cahn = true;
+allen_cahn = false;
 
 %% Shared problem parameters
 
@@ -84,15 +84,6 @@ else
   FD = speye(size(A)) - A;
 end
 
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-plot(X, u, 'o-');
-str = sprintf('Initial Condition \t t = 0', t);
-title(str)
-xlabel('x')
-ylabel('U')
-xlim([a b]);
-ylim([-2 2]);
-
 %% Integrate
 while (t < tf)
     %% update U
@@ -114,11 +105,6 @@ while (t < tf)
     finiteDifference(timesteps,:) = u;
 end
 finiteDifference(end,:) = u;
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,finiteDifference);
-title("FiniteDifference");
-xlabel('x'); ylabel('t'); zlabel('u');
 
 u_finiteDifference = u;
 
@@ -168,42 +154,51 @@ while (t < tf)
 end
 mimetic(end,:) = u;
 
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,mimetic);
-title("Mimetic");
-xlabel('x'); ylabel('t'); zlabel('u');
-
 u_mimetic = u;
 
 %% Matlab Solver
 matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, allen_cahn, coeff), @(x) u0(find(X==x)), @bcfun, X, T);
+
+
+%% Plots
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,finiteDifference);
+title("Finite Difference");
+xlabel('x'); ylabel('t'); zlabel('u');
+
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,mimetic);
+title("Mimetic");
+xlabel('x'); ylabel('t'); zlabel('u');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,matlab);
 title("Matlab");
 xlabel('x'); ylabel('t'); zlabel('u');
 
-
-%% 3D plots
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,abs(mimetic-finiteDifference));
-title("Mimetic vs FiniteDifference");
-xlabel('x'); ylabel('t'); zlabel('u');
+title("Mimetic vs Finite Difference");
+xlabel('x'); ylabel('t'); zlabel('diff');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,abs(mimetic-matlab));
 title("Mimetic vs Matlab");
-xlabel('x'); ylabel('t'); zlabel('u');
+xlabel('x'); ylabel('t'); zlabel('diff');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
-hold on;
+clf; hold on;
 plot(X,u0, "c:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
-title("Final State")
-xlabel('x')
-ylabel('U')
+if (allen_cahn)
+  title("Final State (Allen-Cahn)");
+else
+  title("Final State (Heat)");
+end
+xlabel('x');
+ylabel('u');
 xlim([a b]);
 ylim([-2 2]);
 legend();

@@ -2,6 +2,7 @@
 clf;
 clc;
 clear all;
+figures_so_far = 1;
 
 addpath('./mole_MATLAB/');
 
@@ -9,9 +10,7 @@ addpath('./mole_MATLAB/');
 N = 50; % number of grid points
 
 explicit = false;
-plots = true;
-skip_standard = false;
-allen_cahn = true;
+allen_cahn = false;
 
 %% Shared problem parameters
 
@@ -47,7 +46,7 @@ plot_frequency = 2; % for watching time evolution
 plot_frequency = 1;
 
 %% Implicit "Standard" Finite Differences Approach
-standard = zeros(ceil(tf/dt), length(x_display)); % to store solutions
+finiteDifference = zeros(ceil(tf/dt), length(x_display)); % to store solutions
 
 %% Time discretization
 t = t0;
@@ -57,7 +56,7 @@ timesteps = 1;
 u = u0;
 unew = u0;
 u_display = [u0; u0(1)];
-standard(1,:) = u_display;
+finiteDifference(1,:) = u_display;
 
 %% Finite Difference Operator Matrix
 v = alpha*dt/dx^2;
@@ -79,22 +78,6 @@ else
   FD = speye(size(A)) - A;
 end
 
-
-if (plots)
-  figure(1);
-  plot(x_display, u_display, 'o-');
-  str = sprintf('Initial Condition \t t = 0', t);
-  title(str)
-  xlabel('x')
-  ylabel('U')
-  xlim([a b]);
-  ylim([-2 2]);
-end
-
-figures_so_far = 2;
-
-if (skip_standard == 0)
-
 %% Integrate
 while (t <= tf)
     %% update U
@@ -114,26 +97,11 @@ while (t <= tf)
     timesteps = timesteps+1;
     t = timesteps*dt;
 
-    %% Make a plot every few timesteps and on the last timestep.
     u_display = [u; u(1)];
-    if (plots && (mod(timesteps-1, plot_frequency) == 1 || t >= tf))
-      % figure(figures_so_far); figures_so_far = figures_so_far + 1;
-      figure(2);
-
-      plot(x_display, u_display, 'o-');
-      str = sprintf('Standard \t t = %.2f', t);
-      title(str)
-      xlabel('x')
-      ylabel('U')
-      xlim([a b]);
-      ylim([-2 2]);
-    end
-
-    standard(timesteps,:) = u_display;
-end
+    finiteDifference(timesteps,:) = u_display;
 end
 
-u_standard = u;
+u_finiteDifference = u;
 
 %% Implicit Mimetic Finite Differences Approach
 mimetic = zeros(ceil(tf/dt), length(x_display));
@@ -161,13 +129,17 @@ D = div(order, N, dx); % 1D Mimetic divergence operator
 G = grad(order, N, dx);
 
 %% Periodic BC imposed on the divergence operator
+%% Taken from MOLE example code: examples_MATLAB/hyperbolic1D.m
+%% https://github.com/jcorbino/mole/blob/686bfe038c5717957b67496dc11c552f872609f2/examples_MATLAB/hyperbolic1D.m
 D(1,2) = 1/(2*dx);
 D(1,end-1) = -1/(2*dx);
 D(end,2) = 1/(2*dx);
 D(end,end-1) = -1/(2*dx);
 
-%% Apply the rule that U(1) == U(end), and drop last row/column.
+%% Construct Mimetic Laplacian
 L = D*G;
+
+%% Apply the rule that U(1) == U(end), and drop last row/column.
 L(:, 1) = L(:, 1) + L(:, end);
 L = L(1:end-1,1:end-1);
 
@@ -197,49 +169,46 @@ while (t <= tf)
     u = unew;
 
     u_display = [u; u(1)];
-    %% Make a plot every few timesteps and on the last timestep.
-    if (plots && (mod(timesteps-1, plot_frequency) == 1 || t >= tf))
-      %figure(figures_so_far); figures_so_far = figures_so_far + 1;
-      figure(3);
-
-      plot(x_display, u_display, 'o-');
-      str = sprintf('Mimetic \t t = %.2f', t);
-      title(str)
-      xlabel('x')
-      ylabel('U')
-      xlim([a b]);
-      ylim([-2 2]);
-    end
-
     mimetic(timesteps,:) = u_display;
 end
 
 u_mimetic = u;
 
-percent_diff = 100 * abs(u_standard - u_mimetic) ./ u_standard;
+percent_diff = 100 * abs(u_finiteDifference - u_mimetic) ./ u_finiteDifference;
 
-%% 3D plots
-if (plots)
-  X = x_display;
-  T = 0:dt:tf;
+%% Plots
+X = x_display;
+T = 0:dt:tf;
 
-  %figure(figures_so_far); figures_so_far + 1;
-  figure(4);
-  mesh(X,T,standard);
-  title("standard");
-  xlabel('x'); ylabel('t'); zlabel('u');
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,finiteDifference);
+title("Finite Difference");
+xlabel('x'); ylabel('t'); zlabel('u');
 
-  %figure(figures_so_far); figures_so_far + 1;
-  figure(5);
-  mesh(X,T,mimetic);
-  title("mimetic");
-  xlabel('x'); ylabel('t'); zlabel('u');
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,mimetic);
+title("Mimetic");
+xlabel('x'); ylabel('t'); zlabel('u');
 
-  %figure(figures_so_far); figures_so_far + 1;
-  figure(6);
-  mesh(X,T,abs(mimetic-standard));
-  title("abs. difference");
-  xlabel('x'); ylabel('t'); zlabel('diff');
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+mesh(X,T,abs(mimetic-finiteDifference));
+title("Mimetic vs Finite Difference");
+xlabel('x'); ylabel('t'); zlabel('diff.');
 
+figure(figures_so_far); figures_so_far = figures_so_far + 1;
+clf; hold on;
+plot(X, [u0; u0(1)], "c:", 'DisplayName', 'I.C');
+plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
+plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
+if (allen_cahn)
+  title("Final State (Allen-Cahn)");
+else
+  title("Final State (Heat)");
 end
+xlabel('x')
+ylabel('u')
+xlim([a b]);
+ylim([-2 2]);
+legend();
+hold off;
 
