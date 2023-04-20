@@ -10,7 +10,7 @@ figures_so_far = 1;
 N = 50; % number of grid points
 
 explicit = true;
-allen_cahn = false;
+allen_cahn = true;
 
 %% Shared problem parameters
 
@@ -70,10 +70,11 @@ A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
 %% Really we are using the same centered difference laplacian over the boundary,
 %% however we treat the A(1,0) point as equal to A(1,2), and likewise
 %% for the other edge.
+vedge = 4*v;
 %% X = a
-A(1, 1) = -2*v; A(1, 2) = 2*v;
+A(1, 1) = -2*vedge; A(1, 2) = 2*vedge;
 %% X = b
-A(N+2, N+1) = 2*v; A(N+2, N+2) = -2*v;
+A(N+2, N+1) = 2*vedge; A(N+2, N+2) = -2*vedge;
 
 if (explicit)
   FD = speye(size(A)) + A;

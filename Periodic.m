@@ -7,7 +7,7 @@ figures_so_far = 1;
 addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 5; % number of grid points
+N = 50; % number of grid points
 
 explicit = false;
 allen_cahn = false;
@@ -72,8 +72,9 @@ A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
 
 %% Enforce Periodic B.Cs:
 %% Use centered difference laplacian.
+vedge = 4*v;
 %% X = a
-A(1, N+1) = v;       A(1, 1)     = -2*v; A(1, 2)   = v;
+A(1, N+1) = vedge;       A(1, 1)     = 2*vedge; A(1, 2)   = v*vedge;
 %% Apply the rule that U(a) == U(b), and drop last row/column.
 A(:, 1) = A(:, 1) + A(:, end);
 A = A(1:end-1,1:end-1);
