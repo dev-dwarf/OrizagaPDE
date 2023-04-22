@@ -10,17 +10,18 @@ figures_so_far = 1;
 N = 50; % number of grid points
 
 explicit = true;
-allen_cahn = true;
+equation = 1; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
 
 %% Shared problem parameters
 
 %% Heat Equation
-coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
+loss_coeff = 0.15;
+allen_coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
 alpha = 1.0; % thermal diffusivity.
 
 %% X Domain
 a = 0;
-b = 2*pi;
+b = pi;
 dx = (b-a)/N;
 dx2 = dx/2;
 
@@ -29,11 +30,12 @@ X = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
 
 % Initial Condition
 u0= 1.2*(rand(size(X))-1*rand(size(X)));
-u0 = 0.15*(1*0+sin(3*2*3.14/(b-a) * X));
+u0 = 0.15*(1.0+sin(3*2*3.14/(b-a) * X));
+u0 = cos(X);
 
 % Time Domain
 t0 = 0;
-tf = 5.0;
+tf = 1.0;
 dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
 T = [t0:dt:(ceil(tf/dt)*dt)];
 
@@ -83,7 +85,7 @@ else
 end
 
 %% Integrate
-while (t < tf)
+while (t < tf+dt)
     %% update U
     if (explicit)
       unew = FD * u;
@@ -91,9 +93,12 @@ while (t < tf)
       unew = FD \ u;
     end
 
-    if (allen_cahn)
-      unew = unew - coeff*dt*(u.^3-u);
-    end
+    switch (equation)
+      case 1
+        unew = unew - loss_coeff*dt*u;
+      case 2
+        unew = unew - allen_coeff*dt*(u.^3-u);
+    end        
 
     %% timestep
     timesteps = timesteps+1;
@@ -102,7 +107,6 @@ while (t < tf)
     u = unew;
     finiteDifference(timesteps,:) = u;
 end
-finiteDifference(end,:) = u;
 
 u_finiteDifference = u;
 
@@ -122,7 +126,7 @@ mimetic(1,:) = u0;
 order = 2;
 
 L = lap(order, N, dx);
-R = robinBC(order, N, dx, 0, 1);
+R = robinBC(order, N, dx, 1, 1);
 
 if (explicit)
   MFD = speye(size(L)) + alpha*dt*(L-R);
@@ -131,7 +135,7 @@ else
 end
 
 %% Integrate
-while (t < tf)
+while (t < tf+dt)
     %% update U
     if (explicit)
       unew = MFD * u;
@@ -139,9 +143,12 @@ while (t < tf)
       unew = MFD \ u;
     end
 
-    if (allen_cahn)
-      unew = unew - coeff*dt*(u.^3-u);
-    end
+    switch (equation)
+      case 1
+        unew = unew - loss_coeff*dt*u;
+      case 2
+        unew = unew - allen_coeff*dt*(u.^3-u);
+    end        
 
     %% timestep
     timesteps = timesteps+1;
@@ -150,13 +157,25 @@ while (t < tf)
     u = unew;
     mimetic(timesteps,:) = u;
 end
-mimetic(end,:) = u;
 
 u_mimetic = u;
 
 %% Matlab Solver
-matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, allen_cahn, coeff), @(x) u0(find(X==x)), @bcfun, X, T);
+matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, equation, loss_coeff, allen_coeff), @(x) u0(find(X==x)), @bcfun, X, T);
 
+%% Exact Solutions
+has_exact = false;
+if (equation == 0)
+  has_exact = true;
+  for t=1:size(T,2)
+    exact(t, :) = (exp(-T(t))*cos(X))';
+  end
+elseif (equation == 1)
+  has_exact = true;
+  for t=1:size(T,2)
+    exact(t, :) = exp(-T(t)*(1+loss_coeff))*cos(X)';
+  end
+end
 
 %% Plots
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
@@ -184,17 +203,33 @@ mesh(X,T,abs(mimetic-matlab));
 title("Mimetic vs Matlab");
 xlabel('x'); ylabel('t'); zlabel('diff');
 
+if (has_exact)
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(mimetic-exact));
+  title("Mimetic vs Exact");
+  xlabel('x'); ylabel('t'); zlabel('diff');
+end
+
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 clf; hold on;
 plot(X,u0, "c:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
-if (allen_cahn)
-  title("Final State (Allen-Cahn)");
-else
-  title("Final State (Heat)");
+
+if (has_exact)
+  plot(X, exact(end,:), "k-.", 'DisplayName', 'Exact');
 end
+
+switch (equation)
+  case 0
+  title("Final State (Heat)");
+  case 1
+  title("Final State (Heat w/ Lateral Loss)");
+  case 2
+  title("Final State (Allen-Cahn)");
+end
+
 xlabel('x');
 ylabel('u');
 xlim([a b]);
@@ -203,14 +238,17 @@ legend();
 hold off;
 
 %% Function for matlab solver
-function [c,f,s] = pde(x, t, u, DuDx, allen_cahn, coeff)
+function [c,f,s] = pde(x, t, u, DuDx, equation, loss_coeff, allen_coeff)
   c = 1;
   f = DuDx;
-  if (allen_cahn)
-	s = coeff*(u-u.^3);
-  else
-	s = 0;
-  end
+  switch (equation)
+    case 0
+      s = 0
+    case 1
+      s = -loss_coeff*u;
+    case 2
+	  s = allen_coeff*(u-u.^3);
+  end        
 end
 
 function [pl,ql,pr,qr] = bcfun(xl, ul, xr, ur, t)
@@ -219,6 +257,4 @@ function [pl,ql,pr,qr] = bcfun(xl, ul, xr, ur, t)
   pr = 0;
   qr = 1;
 end
-
-  
 

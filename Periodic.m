@@ -10,7 +10,7 @@ addpath('./mole_MATLAB/');
 N = 50; % number of grid points
 
 explicit = false;
-allen_cahn = false;
+allen_cahn = true;
 
 %% Shared problem parameters
 
@@ -74,7 +74,7 @@ A(N+1, N) = (4/3)*v; A(N+1, N+1) = -4*v; A(N+1, N+2) = (8/3)*v;
 %% Use centered difference laplacian.
 vedge = 4*v;
 %% X = a
-A(1, N+1) = vedge;       A(1, 1)     = 2*vedge; A(1, 2)   = v*vedge;
+A(1, N+1) = vedge;       A(1, 1)     = -2*vedge; A(1, 2)   = vedge;
 %% Apply the rule that U(a) == U(b), and drop last row/column.
 A(:, 1) = A(:, 1) + A(:, end);
 A = A(1:end-1,1:end-1);
@@ -87,7 +87,7 @@ else
 end
 
 %% Integrate
-while (t <= tf)
+while (t < ceil(tf/dt)*dt)
     %% update U
     if (explicit)
       unew = FD * u;
@@ -158,7 +158,7 @@ else
 end
 
 %% Integrate
-while (t <= tf)
+while (t < ceil(tf/dt)*dt)
     %% update U
     if (explicit)
       unew = MFD * u;
