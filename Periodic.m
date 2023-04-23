@@ -10,12 +10,13 @@ addpath('./mole_MATLAB/');
 N = 50; % number of grid points
 
 explicit = false;
-allen_cahn = true;
+equation = 0; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
 
 %% Shared problem parameters
 
 %% Heat Equation
-coeff=(1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
+loss_coeff = 0.15;
+allen_coeff=(1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
 alpha = 1.0; % thermal diffusivity.
 
 %% X Domain
@@ -26,15 +27,11 @@ dx2 = dx/2;
 
 %% X discretization
 x = [a (a+dx2):dx:(b-dx2)]'; % solution domain is u(0) to u(N) {u(x(0)) = u(x(N+1))}
-x_display = [x; b];
+x_display = [x; (b-a+x); b+(b-a)];
 
 %% Initial Condition
-if (allen_cahn)
-  u0=1.2*(rand(size(x))-1*rand(size(x)));
-  %u0 = 0.5*(1+sin(5*3.14/(b-a) * x));
-else
-  u0 = 0.5*(1+sin(2*3.14/(b-a) * x));
-end
+u0=1.2*(rand(size(x))-1*rand(size(x)));
+%%u0 = 0.5*(1+sin(2*3.14/(b-a) * x));
 
 %% Time Domain
 t0 = 0;
@@ -55,7 +52,7 @@ timesteps = 1;
 %% Initial Condition
 u = u0;
 unew = u0;
-u_display = [u0; u0(1)];
+u_display = [u0; u0; u0(1)];
 finiteDifference(1,:) = u_display;
 
 %% Finite Difference Operator Matrix
@@ -95,9 +92,12 @@ while (t < ceil(tf/dt)*dt)
       unew = FD \ u;
     end
 
-    if (allen_cahn)
-      unew = unew - coeff*dt*(u.^3-u);
-    end
+    switch (equation)
+      case 1
+        unew = unew - loss_coeff*dt*u;
+      case 2
+        unew = unew - allen_coeff*dt*(u.^3-u);
+    end        
 
     u = unew;
 
@@ -105,7 +105,7 @@ while (t < ceil(tf/dt)*dt)
     timesteps = timesteps+1;
     t = timesteps*dt;
 
-    u_display = [u; u(1)];
+    u_display = [u; u; u(1)];
     finiteDifference(timesteps,:) = u_display;
 end
 
@@ -114,10 +114,6 @@ u_finiteDifference = u;
 %% Implicit Mimetic Finite Differences Approach
 mimetic = zeros(ceil(tf/dt), length(x_display));
 
-%% X discretization
-x = [a (a+dx/2):dx:(b-dx/2)]';
-x_display = [x; b];
-
 %% Time discretization
 t = t0;
 timesteps = 1;
@@ -125,7 +121,7 @@ timesteps = 1;
 %% Initial Condition
 u = u0;
 unew = u0;
-u_display = [ u; u(1)];
+u_display = [u0; u0; u0(1)];
 mimetic(1,:) = u_display;
 
 %% Mimetic Operator Matrix
@@ -166,9 +162,12 @@ while (t < ceil(tf/dt)*dt)
       unew = MFD \ u;
     end
 
-    if (allen_cahn)
-      unew = unew - coeff*dt*(u.^3-u);
-    end
+    switch (equation)
+      case 1
+        unew = unew - loss_coeff*dt*u;
+      case 2
+        unew = unew - allen_coeff*dt*(u.^3-u);
+    end        
 
     %% timestep
     timesteps = timesteps+1;
@@ -176,7 +175,7 @@ while (t < ceil(tf/dt)*dt)
 
     u = unew;
 
-    u_display = [u; u(1)];
+    u_display = [u; u; u(1)];
     mimetic(timesteps,:) = u_display;
 end
 
@@ -187,7 +186,6 @@ percent_diff = 100 * abs(u_finiteDifference - u_mimetic) ./ u_finiteDifference;
 %% Plots
 X = x_display;
 T = 0:dt:tf;
-
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 mesh(X,T,finiteDifference);
 title("Finite Difference");
@@ -205,18 +203,25 @@ xlabel('x'); ylabel('t'); zlabel('diff.');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 clf; hold on;
-plot(X, [u0; u0(1)], "c:", 'DisplayName', 'I.C');
+plot(X, finiteDifference(1,:), "c:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
-if (allen_cahn)
-  title("Final State (Allen-Cahn)");
-else
+
+switch (equation)
+  case 0
   title("Final State (Heat)");
+  case 1
+  title("Final State (Heat w/ Lateral Loss)");
+  case 2
+  title("Final State (Allen-Cahn)");
 end
+
 xlabel('x')
 ylabel('u')
-xlim([a b]);
+xlim([a b+b]);
 ylim([-2 2]);
 legend();
 hold off;
+
+
 
