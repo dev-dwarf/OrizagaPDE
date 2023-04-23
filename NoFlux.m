@@ -7,15 +7,15 @@ figures_so_far = 1;
 %addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 50; % number of grid points
+N = 25; % number of grid points
 
 explicit = true;
-equation = 1; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+equation = 0; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
 
 %% Shared problem parameters
 
 %% Heat Equation
-loss_coeff = 0.15;
+loss_coeff = 0.15*10;
 allen_coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
 alpha = 1.0; % thermal diffusivity.
 
@@ -37,6 +37,8 @@ u0 = cos(X);
 t0 = 0;
 tf = 1.0;
 dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
+dt=(dx2^2)/2;
+
 T = [t0:dt:(ceil(tf/dt)*dt)];
 
 %plot_frequency = (tf/dt)/N;
@@ -212,7 +214,7 @@ end
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 clf; hold on;
-plot(X,u0, "c:", 'DisplayName', 'I.C');
+plot(X,u0, "k:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
@@ -243,7 +245,7 @@ function [c,f,s] = pde(x, t, u, DuDx, equation, loss_coeff, allen_coeff)
   f = DuDx;
   switch (equation)
     case 0
-      s = 0
+      s = 0;
     case 1
       s = -loss_coeff*u;
     case 2

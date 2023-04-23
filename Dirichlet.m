@@ -199,7 +199,7 @@ xlabel('x'); ylabel('t'); zlabel('diff.');
 
 figure(figures_so_far); figures_so_far = figures_so_far + 1;
 clf; hold on;
-plot(X,u0, "c:", 'DisplayName', 'I.C');
+plot(X,u0, "k:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
