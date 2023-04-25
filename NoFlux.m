@@ -31,14 +31,14 @@ dx = (b-a)/N;
 dx2 = dx/2;
 
 %% X discretization
-X = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
+X = [a (a+dx2):dx:(b-dx2) b]'; 
 
-% Initial Condition
+%% Initial Condition
 u0= 1.2*(rand(size(X))-1*rand(size(X)));
 u0 = 0.15*(1.0+sin(3*2*3.14/(b-a) * X));
 u0 = cos(X);
 
-% Time Domain
+%% Time Domain
 t0 = 0;
 tf = 1.0;
 dt = (dx^2)/(4*alpha); % Von Neumann Stability Criterion
@@ -52,14 +52,14 @@ T = [t0:dt:(ceil(tf/dt)*dt)];
 plot_frequency = 2; % for watching time evolution
 plot_frequency = 1;
 
-% Implicit "Standard" Finite Differences Approach
+%% "Standard" Finite Differences Approach
 finiteDifference = zeros(length(T), length(X)); % to store solutions
 
-% Time discretization
+%% Time discretization
 t = t0;
 timesteps = 1;
 
-% Initial Condition
+%% Initial Condition
 u = u0;
 unew = u0;
 finiteDifference(1,:) = u0;
@@ -119,7 +119,7 @@ end
 
 u_finiteDifference = u;
 
-%% Implicit Mimetic Finite Differences Approach
+%% Mimetic Finite Differences Approach
 mimetic = zeros(length(T), length(X));
 
 %% Time discretization

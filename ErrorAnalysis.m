@@ -9,15 +9,15 @@ for n=0:8
   times(n+1) = log2(dt);
   
   %% Makes sense to average the norms by number of points
-  mimeticError(n+1) = (norm(exact-mimetic, 2)/length(exact));
-  finiteDifferenceError(n+1) = (norm(exact-finiteDifference, 2)/length(exact));
+  mimeticError(n+1) = log2(norm(exact-mimetic, 2)/length(exact));
+  finiteDifferenceError(n+1) = log2(norm(exact-finiteDifference, 2)/length(exact));
 
 end
 figure(fig); fig = fig + 1;
 hold on;
 plot(times, finiteDifferenceError, 'ko--', 'DisplayName', 'Finite Difference');
 plot(times, mimeticError, 'ro--', 'DisplayName', 'Mimetic');
-xlabel('log2(dt)'); ylabel('Normalized Mean Squared Error');
+xlabel('log2(dt)'); ylabel('Log. Normalized Mean Squared Error');
 title('Error Comparison for Heat Eq. w/ No Flux B.Cs');
 legend();
 hold off;
