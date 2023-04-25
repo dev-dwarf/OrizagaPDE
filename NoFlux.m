@@ -11,6 +11,11 @@ N = 25; % number of grid points
 
 explicit = true;
 equation = 0; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+save_outputs = true;
+do_plots = ~save_outputs;
+
+%% For Error Analysis
+for stepSize=0:8
 
 %% Shared problem parameters
 
@@ -36,8 +41,10 @@ u0 = cos(X);
 % Time Domain
 t0 = 0;
 tf = 1.0;
-dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
+dt = (dx^2)/(4*alpha); % Von Neumann Stability Criterion
 dt=(dx2^2)/2;
+
+dt = dt / (2^stepSize);
 
 T = [t0:dt:(ceil(tf/dt)*dt)];
 
@@ -180,64 +187,82 @@ elseif (equation == 1)
 end
 
 %% Plots
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,finiteDifference);
-title("Finite Difference");
-xlabel('x'); ylabel('t'); zlabel('u');
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,mimetic);
-title("Mimetic");
-xlabel('x'); ylabel('t'); zlabel('u');
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,matlab);
-title("Matlab");
-xlabel('x'); ylabel('t'); zlabel('u');
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,abs(mimetic-finiteDifference));
-title("Mimetic vs Finite Difference");
-xlabel('x'); ylabel('t'); zlabel('diff');
-
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-mesh(X,T,abs(mimetic-matlab));
-title("Mimetic vs Matlab");
-xlabel('x'); ylabel('t'); zlabel('diff');
-
-if (has_exact)
+if (do_plots)
   figure(figures_so_far); figures_so_far = figures_so_far + 1;
-  mesh(X,T,abs(mimetic-exact));
-  title("Mimetic vs Exact");
-  xlabel('x'); ylabel('t'); zlabel('diff');
-end
+  mesh(X,T,finiteDifference);
+  title("Finite Difference");
+  xlabel('x'); ylabel('t'); zlabel('u');
 
-figure(figures_so_far); figures_so_far = figures_so_far + 1;
-clf; hold on;
-plot(X,u0, "k:", 'DisplayName', 'I.C');
-plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
-plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
-plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,mimetic);
+  title("Mimetic");
+  xlabel('x'); ylabel('t'); zlabel('u');
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,matlab);
+  title("Matlab");
+  xlabel('x'); ylabel('t'); zlabel('u');
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(mimetic-finiteDifference));
+  title("Mimetic vs Finite Difference");
+  xlabel('x'); ylabel('t'); zlabel('diff');
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(mimetic-matlab));
+  title("Mimetic vs Matlab");
+  xlabel('x'); ylabel('t'); zlabel('diff');
+
+  if (has_exact)
+    figure(figures_so_far); figures_so_far = figures_so_far + 1;
+    mesh(X,T,abs(mimetic-exact));
+    title("Mimetic vs Exact");
+    xlabel('x'); ylabel('t'); zlabel('diff');
+  end
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  clf; hold on;
+  plot(X,u0, "k:", 'DisplayName', 'I.C');
+  plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
+  plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'Finite Difference');
+  plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
+
+  if (has_exact)
+    plot(X, exact(end,:), "k-.", 'DisplayName', 'Exact');
+  end
+
+  switch (equation)
+    case 0
+      title("Final State (Heat)");
+    case 1
+      title("Final State (Heat w/ Lateral Loss)");
+    case 2
+      title("Final State (Allen-Cahn)");
+  end
+
+  xlabel('x');
+  ylabel('u');
+  xlim([a b]);
+  ylim([-2 2]);
+  legend();
+  hold off;
+end
 
 if (has_exact)
-  plot(X, exact(end,:), "k-.", 'DisplayName', 'Exact');
+  switch (equation)
+    case 0
+      eqName = "Heat";
+    case 1
+      eqName = "HeatLateralLoss";
+  end
 end
 
-switch (equation)
-  case 0
-  title("Final State (Heat)");
-  case 1
-  title("Final State (Heat w/ Lateral Loss)");
-  case 2
-  title("Final State (Allen-Cahn)");
+%% Save Outputs
+if (save_outputs)
+  save(sprintf('./data/%s_NoFlux_dt%d.mat', eqName, stepSize), "dt", "exact", "mimetic", "finiteDifference", "matlab");
+end
 end
 
-xlabel('x');
-ylabel('u');
-xlim([a b]);
-ylim([-2 2]);
-legend();
-hold off;
 
 %% Function for matlab solver
 function [c,f,s] = pde(x, t, u, DuDx, equation, loss_coeff, allen_coeff)
