@@ -1,56 +1,20 @@
 %% Allen-Cahn and Heat Equations with No-Flux Boundary conditions.
-clf;
-clc;
-clear all;
-figures_so_far = 1;
+addpath('./mole_MATLAB/');
+run('Configuration.m');
 
-%addpath('./mole_MATLAB/');
+%% Domain
+dx = dx / (2^dxMagnitude);
+dx2 = dx / 2;
+X = [a (a+dx2):dx:(b-dx2) b]';
 
-%% Settings %%%%
-N = 25; % number of grid points
-
-explicit = true;
-equation = 0; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
-save_outputs = true;
-do_plots = ~save_outputs;
-
-%% For Error Analysis
-for stepSize=0:8
-
-%% Shared problem parameters
-
-%% Heat Equation
-loss_coeff = 0.15*10;
-allen_coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
-alpha = 1.0; % thermal diffusivity.
-
-%% X Domain
-a = 0;
-b = pi;
-dx = (b-a)/N;
-dx2 = dx/2;
-
-%% X discretization
-X = [a (a+dx2):dx:(b-dx2) b]'; 
+dt =(dx2^2)/2;
+dt = dt / (2^dtMagnitude);
+T = [t0:dt:(ceil(tf/dt)*dt)];
 
 %% Initial Condition
 u0= 1.2*(rand(size(X))-1*rand(size(X)));
 u0 = 0.15*(1.0+sin(3*2*3.14/(b-a) * X));
 u0 = cos(X);
-
-%% Time Domain
-t0 = 0;
-tf = 1.0;
-dt = (dx^2)/(4*alpha); % Von Neumann Stability Criterion
-dt=(dx2^2)/2;
-
-dt = dt / (2^stepSize);
-
-T = [t0:dt:(ceil(tf/dt)*dt)];
-
-%plot_frequency = (tf/dt)/N;
-plot_frequency = 2; % for watching time evolution
-plot_frequency = 1;
 
 %% "Standard" Finite Differences Approach
 finiteDifference = zeros(length(T), length(X)); % to store solutions
@@ -94,7 +58,7 @@ else
 end
 
 %% Integrate
-while (t < tf+dt)
+while (timesteps < length(T))
     %% update U
     if (explicit)
       unew = FD * u;
@@ -103,17 +67,15 @@ while (t < tf+dt)
     end
 
     switch (equation)
-      case 1
+      case HEAT_LL
         unew = unew - loss_coeff*dt*u;
-      case 2
+      case ALLEN_CAHN
         unew = unew - allen_coeff*dt*(u.^3-u);
     end        
 
-    %% timestep
-    timesteps = timesteps+1;
-    t = timesteps*dt;
-
     u = unew;
+
+    timesteps = timesteps+1;
     finiteDifference(timesteps,:) = u;
 end
 
@@ -144,7 +106,7 @@ else
 end
 
 %% Integrate
-while (t < tf+dt)
+while (timesteps < length(T))
     %% update U
     if (explicit)
       unew = MFD * u;
@@ -153,17 +115,15 @@ while (t < tf+dt)
     end
 
     switch (equation)
-      case 1
+      case HEAT_LL
         unew = unew - loss_coeff*dt*u;
-      case 2
+      case ALLEN_CAHN
         unew = unew - allen_coeff*dt*(u.^3-u);
     end        
 
-    %% timestep
-    timesteps = timesteps+1;
-    t = timesteps*dt;
-
     u = unew;
+
+    timesteps = timesteps+1;
     mimetic(timesteps,:) = u;
 end
 
@@ -174,15 +134,58 @@ matlab = pdepe(0, @(x, t, u, DuDx) pde(x, t, u, DuDx, equation, loss_coeff, alle
 
 %% Exact Solutions
 has_exact = false;
-if (equation == 0)
+if (equation == HEAT)
   has_exact = true;
-  for t=1:size(T,2)
+  for t=1:length(T)
     exact(t, :) = (exp(-T(t))*cos(X))';
   end
-elseif (equation == 1)
+elseif (equation == HEAT_LL)
   has_exact = true;
-  for t=1:size(T,2)
+  for t=1:length(T)
     exact(t, :) = exp(-T(t)*(1+loss_coeff))*cos(X)';
+  end
+end
+has_exact = false;
+
+%% Otherwise, use a reference
+if (do_plots && ~has_exact)
+  reference = zeros(length(T), length(X)); % to store solutions
+  t = 0;
+  timesteps = 1;
+  u = u0;
+  unew = u0;
+  reference(1,:) = u;
+
+  subdivide = 100;
+  dt = dt / subdivide;
+  A = A / subdivide;
+
+  if (explicit)
+    FD = speye(size(A)) + A;
+  else
+    FD = speye(size(A)) - A;
+  end
+
+  while (timesteps < length(T))
+    for i=1:subdivide
+      if (explicit)
+        unew = FD * u;
+      else
+        unew = FD \ u;
+      end
+
+      switch (equation)
+        case 1
+          unew = unew - loss_coeff*dt*u;
+        case 2
+          unew = unew - allen_coeff*dt*(u.^3-u);
+      end        
+
+      u = unew;
+    end
+    
+    timesteps = timesteps+1;
+    reference(timesteps, :) = u;
   end
 end
 
@@ -203,66 +206,61 @@ if (do_plots)
   title("Matlab");
   xlabel('x'); ylabel('t'); zlabel('u');
 
-  figure(figures_so_far); figures_so_far = figures_so_far + 1;
-  mesh(X,T,abs(mimetic-finiteDifference));
-  title("Mimetic vs Finite Difference");
-  xlabel('x'); ylabel('t'); zlabel('diff');
-
-  figure(figures_so_far); figures_so_far = figures_so_far + 1;
-  mesh(X,T,abs(mimetic-matlab));
-  title("Mimetic vs Matlab");
-  xlabel('x'); ylabel('t'); zlabel('diff');
-
   if (has_exact)
-    figure(figures_so_far); figures_so_far = figures_so_far + 1;
-    mesh(X,T,abs(mimetic-exact));
-    title("Mimetic vs Exact");
-    xlabel('x'); ylabel('t'); zlabel('diff');
+    compareTo = exact;
+    compareLabel = "Exact";
+  else
+    compareTo = reference;
+    compareLabel = "Reference";
   end
+  
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(compareTo-finiteDifference));
+  title(sprintf("Finite Difference vs %s", compareLabel));
+  xlabel('x'); ylabel('t'); zlabel('diff');
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(compareTo-matlab));
+  title(sprintf("Matlab vs %s", compareLabel));
+  xlabel('x'); ylabel('t'); zlabel('diff');
+
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(X,T,abs(compareTo-mimetic));
+  title(sprintf("Mimetic vs %s", compareLabel));
+  xlabel('x'); ylabel('t'); zlabel('diff');
 
   figure(figures_so_far); figures_so_far = figures_so_far + 1;
   clf; hold on;
   plot(X,u0, "k:", 'DisplayName', 'I.C');
+  plot(X, matlab(end,:), "k:", 'DisplayName', 'Matlab');
   plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
   plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'Finite Difference');
-  plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
-
-  if (has_exact)
-    plot(X, exact(end,:), "k-.", 'DisplayName', 'Exact');
-  end
-
-  switch (equation)
-    case 0
-      title("Final State (Heat)");
-    case 1
-      title("Final State (Heat w/ Lateral Loss)");
-    case 2
-      title("Final State (Allen-Cahn)");
-  end
-
+  plot(X, compareTo(end,:), "k.", 'DisplayName', compareLabel);
+  title(sprintf("Final State (%s, dt=%g)", eqTitle, tf));
   xlabel('x');
   ylabel('u');
   xlim([a b]);
   ylim([-2 2]);
   legend();
   hold off;
-end
 
-if (has_exact)
-  switch (equation)
-    case 0
-      eqName = "Heat";
-    case 1
-      eqName = "HeatLateralLoss";
-  end
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  clf; hold on;
+  plot(X, abs(matlab(end,:)-compareTo(end,:)), "k:", 'DisplayName', 'Matlab');
+  plot(X, abs(mimetic(end,:)-compareTo(end,:)), "r-", 'DisplayName', 'Mimetic');
+  plot(X, abs(finiteDifference(end,:)-compareTo(end,:)), "b--", 'DisplayName', 'Finite Difference');
+  title(sprintf("Final Error (%s, dt=%g)", eqTitle, tf));
+  xlabel('x');
+  ylabel('u');
+  xlim([a b]);
+  legend();
+  hold off;
 end
 
 %% Save Outputs
 if (save_outputs)
-  save(sprintf('./data/%s_NoFlux_dt%d.mat', eqName, stepSize), "dt", "exact", "mimetic", "finiteDifference", "matlab");
+  save(sprintf('./data/%s_NoFlux_dt%d_dx%d.mat', eqLabel, dtMagnitude, dxMagnitude), "dx", "dt", "exact", "mimetic", "finiteDifference", "matlab", "reference");
 end
-end
-
 
 %% Function for matlab solver
 function [c,f,s] = pde(x, t, u, DuDx, equation, loss_coeff, allen_coeff)
@@ -285,3 +283,4 @@ function [pl,ql,pr,qr] = bcfun(xl, ul, xr, ur, t)
   qr = 1;
 end
 
+    

@@ -1,58 +1,31 @@
 %% Allen-Cahn and Heat Equations with Dirichlet (Zero) Boundary conditions.
-clf;
-clc;
-clear all;
-figures_so_far = 1;
+addpath('./mole_MATLAB/');
+run('Configuration.m');
 
-%addpath('./mole_MATLAB/');
+%% Domain
+dx = dx / (2^dxMagnitude);
+dx2 = dx / 2;
+X = [a (a+dx2):dx:(b-dx2) b]';
 
-%% Settings %%%%
-N = 50; % number of grid points
+dt =(dx2^2)/2;
+dt = dt / (2^dtMagnitude);
+T = [t0:dt:(ceil(tf/dt)*dt)];
 
-explicit = true;
-equation = 1; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
-
-%% Shared problem parameters
-
-%% Heat Equation
-loss_coeff = 0.15;
-allen_coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
-alpha = 1.0; % thermal diffusivity.
-
-%% X Domain
-a = 0;
-b = 2*pi;
-dx = (b-a)/N;
-dx2 = dx/2;
-
-%% X discretization
-X = [a (a+dx2):dx:(b-dx2) b]'; % solution domain is u(0) to u(N)
-
-% Initial Condition
-u0= 1.2*(rand(size(X))-1*rand(size(X)));
-%% u0 = 0.15*(1*0+sin(3*2*3.14/(b-a) * X));
+%% Initial Condition
+%% u0= 1.2*(rand(size(X))-1*rand(size(X)));
+u0 = 0.15*(1*0+sin(3*2*3.14/(b-a) * X));
 
 u0(1) = 0;
 u0(end) = 0;
 
-% Time Domain
-t0 = 0;
-tf = 5.0;
-dt = (dx2^2)/(4*alpha); % Von Neumann Stability Criterion
-T = [t0:dt:(ceil(tf/dt)*dt)];
-
-%plot_frequency = (tf/dt)/N;
-plot_frequency = 2; % for watching time evolution
-plot_frequency = 1;
-
-% Implicit "Standard" Finite Differences Approach
+%% "Standard" Finite Differences Approach
 finiteDifference = zeros(length(T), length(X)); % to store solutions
 
-% Time discretization
+%% Time discretization
 t = t0;
 timesteps = 1;
 
-% Initial Condition
+%% Initial Condition
 u = u0;
 unew = u0;
 finiteDifference(1,:) = u0;
@@ -107,7 +80,7 @@ end
 
 u_finiteDifference = u;
 
-%% Implicit Mimetic Finite Differences Approach
+%% Mimetic Finite Differences Approach
 mimetic = zeros(length(T), length(X));
 
 %% Time discretization
@@ -141,7 +114,7 @@ if (explicit)
 else
   MFD = speye(size(L)) - alpha*dt*(L);
 end
-]
+
 %% Integrate
 while (t < tf+dt)
     %% update U
@@ -203,14 +176,7 @@ plot(X,u0, "k:", 'DisplayName', 'I.C');
 plot(X, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
 plot(X, finiteDifference(end,:), "b--", 'DisplayName', 'FiniteDifference');
 plot(X, matlab(end,:), "k.", 'DisplayName', 'Matlab');
-switch (equation)
-  case 0
-  title("Final State (Heat)");
-  case 1
-  title("Final State (Heat w/ Lateral Loss)");
-  case 2
-  title("Final State (Allen-Cahn)");
-end
+title(sprintf("Final State (%s, dt=%g)", eqTitle, tf));
 xlabel('x')
 ylabel('u')
 xlim([a b]);

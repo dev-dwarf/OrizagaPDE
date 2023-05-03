@@ -3,14 +3,14 @@ clc;
 clear all;
 figures_so_far = 1;
 
-%addpath('./mole_MATLAB/');
+addpath('./mole_MATLAB/');
 
 %% Settings %%%%
-N = 50; % number of grid points, x
+N = 100; % number of grid points, x
 M = N;
 
 explicit = true;
-equation = 0; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+equation = 2; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
 
 %% Shared problem parameters
 
@@ -100,7 +100,7 @@ while (t < tf+dt)
 
     figure(2);
     colormap('cool');
-    %%imagesc(unflatten(u, N, M));
+   %% imagesc(unflatten(u, N, M));
     mesh(X, Y, unflatten(u, N, M));
     xlim([a b]);
     ylim([c d]);
