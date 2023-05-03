@@ -30,7 +30,7 @@ finiteDifference(1,:) = u0;
 
 %% Finite Difference Operator Matrix
 %% N
-v = alpha*dt/dx^2;
+v = dt/dx^2;
 a0 = v*ones(N+2, 1);
 a1 = -2*v*ones(N+2, 1);
 A = spdiags([a0 a1 a0], [-1 0 1], N+2, N+2);
@@ -52,9 +52,9 @@ A(1, 1) = -2*vedge; A(1, 2) = 2*vedge;
 A(N+2, N+1) = 2*vedge; A(N+2, N+2) = -2*vedge;
 
 if (explicit)
-  FD = speye(size(A)) + A;
+  FD = speye(size(A)) + alpha*A;
 else
-  FD = speye(size(A)) - A;
+  FD = speye(size(A)) - alpha*A;
 end
 
 %% Integrate

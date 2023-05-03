@@ -1,12 +1,13 @@
 %% General Settings
 N = 25; %% Number of grid points
 
-explicit = false;
+explicit = true;
 
 HEAT = 0;
 HEATLL = 1;
 ALLENCAHN = 2;
-equation = HEAT; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+equation = HEATLL; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+subdivide = 100; % Subdivisions for reference solutions
 
 save_outputs = false; % save outputs for data analysis
 do_plots = ~save_outputs; % whether to generate figures
@@ -15,8 +16,8 @@ dxMagnitudes = 6;
 
 %% PDE parameters
 loss_coeff = 0.15*10;
-allen_coeff = (1/.15).^2;  %Coefficient needed for Allen-Cahn PDE.
-alpha = 1.0; % thermal diffusivity.
+allen_coeff = (1/.15).^2;  % Coefficient needed for Allen-Cahn PDE.
+alpha = 1.0; % diffusivity.
 
 %% X Domain
 a = 0;

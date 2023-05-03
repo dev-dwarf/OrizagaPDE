@@ -15,7 +15,7 @@ T = [t0:dt:(floor(tf/dt)*dt)];
 
 %% Initial Condition
 u0 = 1.2*(rand(size(Xsim))-1*rand(size(Xsim)));
-u0 = 0.5*(sin(2*3.14/(b-a) * Xsim));
+u0 = 0.5*(sin(2*pi/(b-a) * Xsim));
 
 %% "Standard" Finite Differences Approach
 finiteDifference = zeros(length(T), length(Xdis)); % to store solutions
@@ -30,7 +30,7 @@ U = [u0; u0; u0(1)];
 finiteDifference(1,:) = U;
 
 %% Finite Difference Operator Matrix
-v = alpha*dt/dx^2;
+v = dt/dx^2;
 a0 = v*ones(N+2, 1);
 a1 = -2*v*ones(N+2, 1);
 A = spdiags([a0 a1 a0], [-1 0 1], N+2, N+2);
@@ -51,9 +51,9 @@ A(:, 1) = A(:, 1) + A(:, end);
 A = A(1:end-1,1:end-1);
 
 if (explicit)
-  FD = speye(size(A)) + A;
+  FD = speye(size(A)) + alpha*A;
 else
-  FD = speye(size(A)) - A;
+  FD = speye(size(A)) - alpha*A;
 end
 
 %% Integrate
@@ -113,7 +113,7 @@ D(end,end-1) = -1/(2*dx);
 %% https://www.sciencedirect.com/science/article/pii/S0377042715005051#s000050
 
 %% Construct Mimetic Laplacian
-L = D*G;
+L = D*G - robinBC(2, N, dx, 1, 0);
 
 %% Apply the rule that U(a) == U(b), and drop last row/column.
 L(:, 1) = L(:, 1) + L(:, end);
@@ -159,7 +159,6 @@ unew = u0;
 U = [u0; u0; u0(1)];
 reference(1,:) = U;
 
-subdivide = 100;
 dt = dt / subdivide;
 
 if (explicit)
