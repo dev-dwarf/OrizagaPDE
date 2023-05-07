@@ -1,18 +1,23 @@
 %% General Settings
-N = 25; %% Number of grid points
-
-explicit = true;
-
 HEAT = 0;
 HEATLL = 1;
 ALLENCAHN = 2;
-equation = HEATLL; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
-subdivide = 100; % Subdivisions for reference solutions
+if ~exist('generateData', 'var')
+  dxMagnitude = 0;
+  dtMagnitude = 1;
+  equation = ALLENCAHN; % 0 = heat, 1 = heat w/ lateral loss, 2 = allen-cahn
+end
+
+N = 40*2^dxMagnitude; %% Number of grid points
+explicit = true;
+
+tSubd = 8; % Subdivisions for reference solutions - Allen-Cahn / Periodic
+xSubd = 4;
+dtMagnitudes = 6; % Magnitudes to generate data for
+dxMagnitudes = 6;
 
 save_outputs = false; % save outputs for data analysis
 do_plots = ~save_outputs; % whether to generate figures
-dtMagnitudes = 6; % Magnitudes to generate data for
-dxMagnitudes = 6;
 
 %% PDE parameters
 loss_coeff = 0.15*10;
@@ -22,15 +27,14 @@ alpha = 1.0; % diffusivity.
 %% X Domain
 a = 0;
 b = pi;
-dx = (b-a)/N;
+dx = (b-a)/N; % N already includes 2^dxMagnitude term
 dx2 = dx/2;
-dxMagnitude = 0;
 
 %% Time Domain
 t0 = 0;
 tf = 1.0;
 dt =(dx2^2)/2;
-dtMagnitude = 0;
+dt = dt / (2^dtMagnitude);
 
 %% Prelude
 clf;

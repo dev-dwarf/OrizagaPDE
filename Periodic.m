@@ -3,19 +3,17 @@ addpath('./mole_MATLAB/');
 run('Configuration.m');
 
 %% Domain
-dx = dx / (2^dxMagnitude);
-dx2 = dx / 2;
 X = [a (a+dx2):dx:(b-dx2) b]';
 Xsim = X(1:end-1);
 Xdis = [X; (b-a)+X(2:end);];
 
-dt = (dx2^2)/2;
-dt = dt / (2^dtMagnitude);
 T = [t0:dt:(floor(tf/dt)*dt)];
 
 %% Initial Condition
-u0 = 1.2*(rand(size(Xsim))-1*rand(size(Xsim)));
-u0 = 0.5*(sin(2*pi/(b-a) * Xsim));
+ICfun = @(X) 1.2*(rand(size(X))-1*rand(size(X)));
+ICfun = @(X) 0.15*(1.0+sin(3*2*3.14/(b-a) * X));
+ICfun = @(X) 0.5*(sin(4*pi/(b-a) * X) + sin(2*pi/(b-a) * X));
+u0 = ICfun(Xsim);
 
 %% "Standard" Finite Differences Approach
 finiteDifference = zeros(length(T), length(Xdis)); % to store solutions
@@ -113,7 +111,8 @@ D(end,end-1) = -1/(2*dx);
 %% https://www.sciencedirect.com/science/article/pii/S0377042715005051#s000050
 
 %% Construct Mimetic Laplacian
-L = D*G - robinBC(2, N, dx, 1, 0);
+L = D*G - robinBC(order, N, dx, 1, 0);
+
 
 %% Apply the rule that U(a) == U(b), and drop last row/column.
 L(:, 1) = L(:, 1) + L(:, end);
@@ -159,16 +158,29 @@ unew = u0;
 U = [u0; u0; u0(1)];
 reference(1,:) = U;
 
-dt = dt / subdivide;
+dt = dt / tSubd;
+dx = dx / xSubd;
+Xsub = [a:(dx):(b-dx)]';
+Nsub = length(Xsub);
+Indices = [1 (1+xSubd/2):(xSubd):(Nsub-xSubd/2) (Nsub-1)];
+u = ICfun(Xsub);
+unew = u;
+
+v = dt/dx^2;
+a0 = ones(Nsub, 1);
+a1 = -2*ones(Nsub, 1);
+A = spdiags([a0 a1 a0], [-1 0 1], Nsub, Nsub);
+A(1, end) = 1;
+A(end, 1) = 1;
 
 if (explicit)
-  RFD = speye(size(A)) + A / subdivide;
+  RFD = speye(size(A)) + alpha*v*A;
 else
-  RFD = speye(size(A)) - A / subdivide;
+  RFD = speye(size(A)) - alpha*v*A;
 end
 
 while (timesteps < length(T))
-  for i=1:subdivide
+  for i=1:tSubd
     if (explicit)
       unew = RFD * u;
     else
@@ -186,7 +198,7 @@ while (timesteps < length(T))
   end
   
   timesteps = timesteps+1;
-  U = [u; u; u(1)];
+  U = [u(Indices); u(Indices); u(1)];
   reference(timesteps,:) = U;
 end
   
@@ -218,6 +230,11 @@ if (do_plots)
   xlabel('x'); ylabel('t'); zlabel('diff.');
 
   figure(figures_so_far); figures_so_far = figures_so_far + 1;
+  mesh(Xdis,T,abs(mimetic-finiteDifference));
+  title("Mimetic vs Finite Difference");
+  xlabel('x'); ylabel('t'); zlabel('diff.');
+  
+  figure(figures_so_far); figures_so_far = figures_so_far + 1;
   clf; hold on;
   plot(Xdis, finiteDifference(1,:), "k:", 'DisplayName', 'I.C');
   plot(Xdis, mimetic(end,:), "r-", 'DisplayName', 'Mimetic');
@@ -235,7 +252,7 @@ if (do_plots)
   clf; hold on;
   plot(Xdis, abs(mimetic(end,:)-reference(end,:)), "r-", 'DisplayName', 'Mimetic');
   plot(Xdis, abs(finiteDifference(end,:)-reference(end,:)), "b--", 'DisplayName', 'FiniteDifference');
-  title(sprintf("Final Error (%s, dt=%g)", eqTitle, tf));
+  title(sprintf("Final Log Error (%s, dt=%g)", eqTitle, tf));
   xlabel('x')
   ylabel('u')
   xlim([a b+b]);
@@ -245,5 +262,5 @@ end
 
 %% Save Outputs
 if (save_outputs)
-  save(sprintf('./data/%s_NoFlux_dt%d_dx%d.mat', eqLabel, dtMagnitude, dxMagnitude), "dx", "dt", "mimetic", "finiteDifference", "reference");
+  save(sprintf('./data/%s_Periodic_dt%d_dx%d.mat', eqLabel, dtMagnitude, dxMagnitude), "dx", "dt", "mimetic", "finiteDifference", "reference");
 end

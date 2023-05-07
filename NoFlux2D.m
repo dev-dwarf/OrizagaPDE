@@ -65,7 +65,7 @@ unew = flatten(U0, N, M);
 order = 2;
 
 L = lap2D(order, N, dx, M, dy);
-R = robinBC2D(order, N, dx, M, dy, 1, 1);
+R = robinBC2D(order, N, dx, M, dy, 0, 1);
 
 if (explicit)
   MFD = speye(size(L)) + alpha*dt*(L-R);
